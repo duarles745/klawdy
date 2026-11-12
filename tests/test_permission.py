@@ -6,9 +6,8 @@ import threading
 import time
 import unittest
 
-from tests import ROOT
-
 from klawdy import actions, config, sessions
+from tests import ROOT
 
 HOOK = os.path.join(ROOT, "app", "permission.sh")
 REQ = {"session_id": "s1", "cwd": "/w/proj", "hook_event_name": "PermissionRequest",
