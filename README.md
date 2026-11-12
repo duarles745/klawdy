@@ -90,8 +90,11 @@ clica no botão.
 ## Segurança e privacidade
 
 - Conversas no terminal continuam pedindo sua aprovação normalmente.
-- **Pedidos em segundo plano** (caixa "em segundo plano", conversas anteriores, voz) rodam sem ninguém aprovar cada
-  passo, então o Klawdy só libera para eles ferramentas que não precisam de aprovação. **O Claude in Chrome vem
+- **Pedidos em segundo plano** (caixa "em segundo plano", conversas anteriores) não têm terminal: quando o Claude
+  precisa de permissão (pesquisar na web, rodar um comando, mexer num arquivo…), abre um **popup embaixo do Klawdy**
+  com o que ele quer fazer e os botões **Aprovar** / **Recusar**. O popup não pega o teclado sozinho; sem resposta em
+  alguns minutos (ou com o Klawdy fechado) o pedido é recusado. Os comandos de voz só usam ferramentas que não
+  precisam de aprovação. **O Claude in Chrome vem
   desligado para eles**: uma página pode conter instruções escondidas para o Claude (prompt injection) e ele agiria no
   navegador onde você está logado. Ligar mostra esse aviso antes.
 - O Klawdy não envia nada para a internet por conta própria; a voz é reconhecida no seu computador.

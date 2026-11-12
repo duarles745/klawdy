@@ -90,8 +90,11 @@ click the button.
 ## Security and privacy
 
 - Conversations in a terminal always ask for your approval as usual.
-- **Background requests** (prompt box "in the background", past conversations, voice) run without anyone approving
-  each step, so Klawdy gives them only tools that need no approval. **Claude in Chrome is off for them by default**:
+- **Background requests** (prompt box "in the background", past conversations) have no terminal: when Claude needs
+  permission (search the web, run a command, change a file…), a **popup opens below Klawdy** showing what it wants to
+  do, with **Approve** / **Deny**. The popup never grabs the keyboard by itself; with no answer in a few minutes (or
+  with Klawdy closed) the request is denied. Voice commands only get tools that need no approval.
+  **Claude in Chrome is off for them by default**:
   a web page can contain instructions meant for Claude (prompt injection) and it would act in your logged-in
   browser. Turning it on shows this warning first.
 - Klawdy sends nothing to the internet by itself; voice is recognised locally.

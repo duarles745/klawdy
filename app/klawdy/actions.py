@@ -1,6 +1,7 @@
 """Things Klawdy does outside its own window: terminals, background runs, sounds, D-Bus."""
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -124,15 +125,36 @@ def shell_call(method, *args):
 
 
 # ---------------------------------------------------------------- background runs (claude -p)
+def perm_settings():
+    """--settings JSON that adds the popup permission hook to one background run only."""
+    hook = {"type": "command", "command": shlex.quote(config.PERM_HOOK), "timeout": 300}
+    return json.dumps({"hooks": {"PermissionRequest": [{"hooks": [hook]}]}})
+
+
+def answer_permission(req_id, allow):
+    """Answer a request left by permission.sh (atomic write: the hook polls for the file)."""
+    req_id = "".join(c for c in str(req_id) if c.isalnum() or c == "-")
+    if not req_id:
+        return
+    path = os.path.join(config.PERM_DIR, req_id + ".answer")
+    try:
+        with open(path + ".tmp", "w") as f:
+            f.write("allow" if allow else "deny")
+        os.replace(path + ".tmp", path)
+    except OSError:
+        pass
+
+
 def run_main(prompt, resume=None, cwd=None, fork=False):
     """Run a prompt with `claude -p` and leave the answer for the mascot.
 
-    Background runs cannot ask for approval, so Claude only gets tools that need none.
+    There is no terminal to ask for approval, so a PermissionRequest hook (permission.sh) asks
+    in a popup next to the mascot; without an answer the tool is denied, as `-p` always did.
     Chrome is added only when the user enabled it in Settings (with a warning): web pages can
     contain instructions meant for Claude (prompt injection)."""
     os.makedirs(config.STATE_DIR, exist_ok=True)
     started = time.strftime("%Y-%m-%d %H:%M")
-    cmd = [compat.claude_bin(), "-p", "--output-format", "json"]
+    cmd = [compat.claude_bin(), "-p", "--output-format", "json", "--settings", perm_settings()]
     if resume:
         cmd += ["--resume", resume] + (["--fork-session"] if fork else [])
     if config.setting("chrome"):

@@ -1,5 +1,6 @@
 """Secondary windows: speech bubble, full answer, Ctrl+. prompt box, confirmations."""
 import json
+import os
 import textwrap
 
 import gi
@@ -208,6 +209,103 @@ class AnswerWindow(Gtk.Window):
         cb.set_text(self.text, -1)
         cb.store()
         btn.set_label(_("Copiado ✓"))
+
+
+# ======================= permission popup (background runs) =======================
+PERM_CSS = b"""
+.perm { background-color: #ffffff; border: 3px solid #d77757; border-radius: 18px; padding: 12px 14px; }
+.perm .title { color: #3a2418; font-weight: bold; font-size: 13px; }
+.perm .what { color: #3a2418; font-size: 13px; }
+.perm .detail { color: #2a1a12; font-family: monospace; font-size: 12px;
+                background-color: #fff8f4; border-radius: 8px; padding: 6px 8px; }
+.perm .hint { color: #8a6a5a; font-size: 11px; }
+.perm button { border-radius: 10px; padding: 4px 14px; }
+.perm .allow { background-image: none; background-color: #d77757; color: #ffffff; font-weight: bold; }
+"""
+
+
+class PermissionWindow(Gtk.Window):
+    """Approve / deny one tool call of a background run. Opens below the mascot.
+
+    It never takes the keyboard focus by itself, so typing elsewhere can't approve anything."""
+
+    def __init__(self, req, anchor_x, below_y, top_y, g, waiting=0, on_answer=None):
+        super().__init__(type=Gtk.WindowType.TOPLEVEL)
+        self.req_id = req["id"]
+        self.on_answer = on_answer
+        self.set_title(_("Claude pede permissão"))
+        self.set_decorated(False)
+        self.set_keep_above(True)
+        self.set_skip_taskbar_hint(True)
+        self.set_focus_on_map(False)
+        self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
+        self.stick()
+        rgba_window(self)
+        add_css(self, PERM_CSS)
+        what, detail = sessions.perm_summary(req.get("tool"), req.get("input"))
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        box.get_style_context().add_class("perm")
+        proj = os.path.basename(req.get("cwd") or "") or "~"
+        title = Gtk.Label(label=f"🔐 {_('Claude pede permissão')} · {proj}", xalign=0)
+        title.get_style_context().add_class("title")
+        box.pack_start(title, False, False, 0)
+        lw = Gtk.Label(label=what, xalign=0)
+        lw.set_line_wrap(True)
+        lw.get_style_context().add_class("what")
+        box.pack_start(lw, False, False, 0)
+        if detail:
+            ld = Gtk.Label(label=detail, xalign=0)
+            ld.set_line_wrap(True)
+            ld.set_line_wrap_mode(2)        # Pango.WrapMode.WORD_CHAR
+            ld.set_selectable(True)
+            ld.set_max_width_chars(60)
+            ld.get_style_context().add_class("detail")
+            box.pack_start(ld, False, False, 0)
+        hint = _("Sem resposta em alguns minutos, o pedido é recusado.")
+        if waiting:
+            hint += "  ·  " + _("mais {n} na fila", n=waiting)
+        lh = Gtk.Label(label=hint, xalign=0)
+        lh.set_line_wrap(True)
+        lh.get_style_context().add_class("hint")
+        box.pack_start(lh, False, False, 0)
+        btns = Gtk.Box(spacing=6)
+        deny = Gtk.Button(label=_("Recusar"))
+        deny.connect("clicked", lambda *_a: self.answer(False))
+        allow = Gtk.Button(label=_("Aprovar"))
+        allow.get_style_context().add_class("allow")
+        allow.connect("clicked", lambda *_a: self.answer(True))
+        btns.pack_end(allow, False, False, 0)
+        btns.pack_end(deny, False, False, 0)
+        box.pack_start(btns, False, False, 0)
+        self.add(box)
+        self.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+        self.connect("button-press-event", self.on_press)
+        self.connect("key-press-event", self.on_key)
+        self.set_default_size(min(440, g.width - 40), -1)
+        self.show_all()
+        w, h = self.get_size()
+        x = max(g.x + 8, min(g.x + g.width - w - 8, int(anchor_x - w / 2)))
+        y = int(below_y)
+        if y + h > g.y + g.height - 8:              # no room below the mascot: go above
+            y = int(max(g.y + 8, top_y - h))
+        self.move(x, y)
+
+    def answer(self, allow):
+        actions.answer_permission(self.req_id, allow)
+        if self.on_answer:
+            self.on_answer(self.req_id)
+        self.destroy()
+
+    def on_press(self, _w, ev):
+        if ev.button == 1:
+            self.begin_move_drag(1, int(ev.x_root), int(ev.y_root), ev.time)
+        return False
+
+    def on_key(self, _w, ev):
+        if ev.keyval == Gdk.KEY_Escape:
+            self.answer(False)
+            return True
+        return False
 
 
 # ======================= Ctrl+. prompt box =======================

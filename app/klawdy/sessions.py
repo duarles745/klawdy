@@ -176,3 +176,76 @@ def list_targets():
     out.append({"kind": "new_term", "label": _("＋ Nova conversa (abre um terminal)")})
     out.append({"kind": "new_bg", "label": _("＋ Nova conversa em segundo plano")})
     return out
+
+
+# ---------------------------------------------------------------- permission requests (permission.sh)
+PERM_STALE_SECS = 600
+
+
+def read_permissions(now=None, perm_dir=None):
+    """Pending requests from background runs, oldest first. Removes stale files."""
+    now = now or time.time()
+    perm_dir = perm_dir or config.PERM_DIR
+    reqs = []
+    try:
+        entries = os.listdir(perm_dir)
+    except FileNotFoundError:
+        return reqs
+    for fn in entries:
+        if not fn.endswith(".json"):
+            continue
+        path = os.path.join(perm_dir, fn)
+        try:
+            with open(path) as f:
+                r = json.load(f)
+        except Exception:
+            continue
+        if not isinstance(r, dict) or not r.get("id"):
+            continue
+        if now - r.get("time", 0) > PERM_STALE_SECS:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+            continue
+        reqs.append(r)
+    reqs.sort(key=lambda r: (r.get("time", 0), r["id"]))
+    return reqs
+
+
+def perm_summary(tool, inp):
+    """(what Claude wants to do, the detail) for the permission popup."""
+    inp = inp if isinstance(inp, dict) else {}
+    tool = tool or "?"
+
+    def get(*keys):
+        for k in keys:
+            v = inp.get(k)
+            if isinstance(v, str) and v.strip():
+                return v.strip()
+        return ""
+
+    if tool == "Bash":
+        what, detail = _("Rodar um comando no terminal"), get("command")
+        desc = get("description")
+        if desc:
+            detail = f"{desc}\n\n$ {detail}"
+    elif tool == "WebSearch":
+        what, detail = _("Pesquisar na web"), get("query")
+    elif tool == "WebFetch":
+        what, detail = _("Abrir uma página da web"), get("url")
+    elif tool in ("Write", "Edit", "MultiEdit", "NotebookEdit"):
+        what, detail = _("Criar ou alterar um arquivo"), get("file_path", "notebook_path")
+    elif tool in ("Read", "Glob", "Grep"):
+        what, detail = _("Ler arquivos"), get("file_path", "path", "pattern")
+    elif tool.startswith("mcp__"):
+        parts = tool.split("__")
+        server = parts[1] if len(parts) > 1 else "?"
+        name = parts[2] if len(parts) > 2 else ""
+        what = _("Usar o conector {server}", server=server.replace("claude_ai_", ""))
+        args = json.dumps(inp, ensure_ascii=False) if inp else ""
+        detail = name + (f"\n{args}" if args else "")
+    else:
+        what = _("Usar a ferramenta {tool}", tool=tool)
+        detail = json.dumps(inp, ensure_ascii=False) if inp else ""
+    return what, short(detail, 600)

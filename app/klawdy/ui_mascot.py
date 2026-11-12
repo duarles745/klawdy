@@ -17,7 +17,7 @@ from . import actions, compat, config, i18n, palette, sessions, skills, themes  
 from .compat import short  # noqa: E402
 from .i18n import _  # noqa: E402
 from .painter import BODY_CX, BODY_CY, MIC_CX, MIC_CY, MIC_R, PH, H, Painter, W  # noqa: E402
-from .ui_windows import AnswerWindow, Bubble, ask_text, confirm_chrome  # noqa: E402
+from .ui_windows import AnswerWindow, Bubble, PermissionWindow, ask_text, confirm_chrome  # noqa: E402
 
 SIZE_MIN, SIZE_MAX, SIZE_STEP = 100, 350, 10
 LAYOUT = 2              # bump when the window geometry changes (fixes the saved position)
@@ -106,6 +106,10 @@ class Mascot(Painter, Gtk.Window):
         self.gear = set()
         self._answer_mtime = self.answer_mtime()
         self._fps = 0
+        self.perms = []                 # pending permission requests of background runs
+        self.perm_win = None
+        self._answered = set()
+        self.write_pid()
 
         self.restore_position()
         self.poll()
@@ -197,7 +201,23 @@ class Mascot(Painter, Gtk.Window):
             self.set_size(self.size + d * SIZE_STEP)
         return True
 
+    @staticmethod
+    def write_pid():
+        """permission.sh only waits for an answer while this process is alive."""
+        try:
+            os.makedirs(config.STATE_DIR, exist_ok=True)
+            with open(config.MASCOT_PID, "w") as f:
+                f.write(str(os.getpid()))
+        except OSError:
+            pass
+
     def on_destroy(self, *_):
+        try:
+            with open(config.MASCOT_PID) as f:
+                if f.read().strip() == str(os.getpid()):
+                    os.remove(config.MASCOT_PID)
+        except OSError:
+            pass
         self.bubble.destroy()
         Gtk.main_quit()
 
@@ -282,6 +302,10 @@ class Mascot(Painter, Gtk.Window):
             actions.play_sound("pronto")
         self.real_state = new_state
 
+        self.poll_permissions(now)
+        if self.perms:
+            new_state, self.last_active = "attention", now
+
         self.voice = sessions.read_voice(now)         # voice commands drive the animation
         if self.voice and self.voice["state"] == "listening":
             new_state, self.last_active = "attention", now
@@ -296,6 +320,37 @@ class Mascot(Painter, Gtk.Window):
         self.skill = skill
         self.gear = skills.skill_gear(skill)
         return True
+
+    def poll_permissions(self, now):
+        """One popup at a time, below the mascot; closes itself if the hook gave up."""
+        reqs = sessions.read_permissions(now)
+        ids = {r["id"] for r in reqs}
+        self._answered &= ids
+        self.perms = [r for r in reqs if r["id"] not in self._answered]
+        if self.perm_win and self.perm_win.req_id not in {r["id"] for r in self.perms}:
+            self.perm_win.destroy()
+            self.perm_win = None
+        if self.perms and not self.perm_win:
+            self.open_permission(self.perms[0])
+
+    def open_permission(self, req):
+        x, y = self.get_position()
+        k = self.scale
+        cx = x + BODY_CX * k
+        disp = Gdk.Display.get_default()
+        mon = disp.get_monitor_at_point(int(cx), int(y + BODY_CY * k)) or disp.get_monitor(0)
+        g = mon.get_workarea()
+        below = y + (BODY_CY + 2.5 * PH + 16) * k     # under the feet
+        top = y + (BODY_CY - 2.5 * PH - BUBBLE_GAP) * k
+
+        def done(req_id):
+            self._answered.add(req_id)
+            self.perm_win = None
+
+        self.perm_win = PermissionWindow(req, cx, below, top, g, waiting=len(self.perms) - 1, on_answer=done)
+        what, _detail = sessions.perm_summary(req.get("tool"), req.get("input"))
+        actions.notify(_("Claude pede permissão"), what)
+        actions.play_sound("atencao")
 
     def voice_active(self):
         return bool(self.voice and self.voice.get("state") in ("listening", "running"))
@@ -318,6 +373,9 @@ class Mascot(Painter, Gtk.Window):
             return [_("Ouvindo") + dots, _("fale o que deseja")]
         if v and v.get("state") == "running":
             return [_("Entendi! Executando") + dots] + wrap(f"“{v.get('text', '')}”", 34, 3)
+        if self.perms:
+            what, _detail = sessions.perm_summary(self.perms[0].get("tool"), self.perms[0].get("input"))
+            return [_("Precisa da sua permissão!")] + wrap(what, 34, 2)
         if self.answer:
             return self.answer["lines"]
         s = self.sessions[0] if self.sessions else {}

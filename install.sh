@@ -149,7 +149,7 @@ fi
 rm -rf "$DEST/klawdy"
 cp -r "$SRC/app/klawdy" "$DEST/klawdy"
 find "$DEST/klawdy" -name __pycache__ -prune -exec rm -rf {} +
-for f in hook.sh klawdy.sh prompt.sh make_sounds.py requirements-voice.txt; do
+for f in hook.sh permission.sh klawdy.sh prompt.sh make_sounds.py requirements-voice.txt; do
   install -m 0755 "$SRC/app/$f" "$DEST/$f"
 done
 python3 "$DEST/make_sounds.py" >/dev/null && info "Efeitos sonoros gerados." "Sound effects generated."

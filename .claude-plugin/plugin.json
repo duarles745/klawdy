@@ -1,6 +1,6 @@
 {
   "name": "klawdy",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Klawdy: a pixel-art desktop companion that shows what Claude Code is doing (working, needs you, done), with skills, MCP and session menus and optional offline voice commands. Linux. Unofficial community project.",
   "author": { "name": "Duarles Moreira" },
   "homepage": "https://github.com/duarles745/klawdy",

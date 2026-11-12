@@ -1,5 +1,19 @@
 """English translations. Source strings are pt-BR; tests/test_i18n.py fails if one is missing."""
 EN = {
+    # permission popup (background runs)
+    "Rodar um comando no terminal": "Run a command in the terminal",
+    "Pesquisar na web": "Search the web",
+    "Abrir uma página da web": "Open a web page",
+    "Criar ou alterar um arquivo": "Create or change a file",
+    "Ler arquivos": "Read files",
+    "Usar o conector {server}": "Use the {server} connector",
+    "Usar a ferramenta {tool}": "Use the {tool} tool",
+    "Claude pede permissão": "Claude asks for permission",
+    "Aprovar": "Approve",
+    "Recusar": "Deny",
+    "Sem resposta em alguns minutos, o pedido é recusado.": "With no answer in a few minutes, the request is denied.",
+    "mais {n} na fila": "{n} more waiting",
+    "Precisa da sua permissão!": "Needs your permission!",
     # actions / background runs
     "Não consegui enviar para o terminal (extensão do GNOME inativa).\nRespondendo numa cópia da conversa em segundo plano…":
         "Could not type into the terminal (GNOME extension inactive).\nAnswering in a copy of the conversation in the background…",

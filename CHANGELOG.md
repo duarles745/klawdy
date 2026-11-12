@@ -2,6 +2,15 @@
 
 All notable changes to Klawdy. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [2.1.0] — 2026-11-12
+
+### Added
+- **Permission popup for background requests**: `claude -p` runs started by Klawdy get a
+  `PermissionRequest` hook (`app/permission.sh`, only for those runs, via `--settings`). When Claude needs
+  approval, a popup below Klawdy shows what it wants to do (web search, command, file, connector…) with
+  **Approve** / **Deny**. No answer in ~5 minutes, or Klawdy closed, means denied (as before). Terminal
+  sessions are unchanged.
+
 ## [2.0.0] — 2026-11-12
 
 The project becomes **Klawdy**, an unofficial community companion for Claude Code, ready to be shared.
