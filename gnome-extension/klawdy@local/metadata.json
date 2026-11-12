@@ -1,0 +1,8 @@
+{
+  "uuid": "klawdy@local",
+  "name": "Klawdy",
+  "description": "Lets the Klawdy desktop companion bring a Claude Code session's terminal to the front (unofficial).",
+  "shell-version": ["45", "46", "47", "48", "49", "50"],
+  "url": "https://github.com/duarles745/klawdy",
+  "version": 2
+}

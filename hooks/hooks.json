@@ -1,0 +1,12 @@
+{
+  "description": "Tells Klawdy what Claude is doing (writes the session state to $XDG_RUNTIME_DIR/klawdy).",
+  "hooks": {
+    "SessionStart":     [{ "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/app/hook.sh\" idle", "timeout": 5 }] }],
+    "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/app/hook.sh\" working", "timeout": 5 }] }],
+    "PreToolUse":       [{ "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/app/hook.sh\" working", "timeout": 5 }] }],
+    "PostToolUse":      [{ "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/app/hook.sh\" working", "timeout": 5 }] }],
+    "Notification":     [{ "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/app/hook.sh\" attention", "timeout": 5 }] }],
+    "Stop":             [{ "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/app/hook.sh\" done", "timeout": 5 }] }],
+    "SessionEnd":       [{ "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/app/hook.sh\" end", "timeout": 5 }] }]
+  }
+}

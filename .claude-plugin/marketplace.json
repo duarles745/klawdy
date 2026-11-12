@@ -1,0 +1,12 @@
+{
+  "name": "klawdy",
+  "owner": { "name": "Duarles Moreira" },
+  "metadata": { "description": "Klawdy, a desktop companion for Claude Code (unofficial)" },
+  "plugins": [
+    {
+      "name": "klawdy",
+      "source": "./",
+      "description": "Floating pixel-art companion that shows Claude Code's status, with optional voice commands."
+    }
+  ]
+}
